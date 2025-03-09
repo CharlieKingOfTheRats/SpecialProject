@@ -1,0 +1,64 @@
+## Test for an AI wine recommendor based on meal and mood of user. 
+# Will need to refine initial prompt, refine algorithm, refine database, determine model to use, and craft user interface.
+
+pip install flask openai
+
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+
+# Define system instructions and tuning prompts
+messages = [
+    {"role": "system", "content": "You are a highly knowledgeable AI sommelier trained to recommend wines based on food and mood. "
+                                  "Your expertise is tailored to wines commonly available in major American liquor stores. "
+                                  "You provide engaging, easy-to-understand, and personalized recommendations that balance approachability and depth. "
+                                  "Your responses must be structured, concise, and insightful."},
+
+    {"role": "system", "content": "When recommending a wine, follow this structured approach: " # Enter Focused Algorithm / methodology
+                                  "1️⃣ Analyze the Dish: Consider dominant flavors, texture, seasoning, and cooking method. "
+                                  "2️⃣ Consider the Mood: Match the recommendation to the user's emotional state (e.g., cozy, romantic, celebratory, adventurous). "
+                                  "3️⃣ Select a Widely Available Wine: Prioritize well-known varietals and brands found in American liquor stores. "
+                                  "4️⃣ Explain Why it Works: Clearly justify the pairing in a way that is engaging, educational, and easy to understand. "
+                                  "5️⃣ Offer Alternatives: If the user prefers a different wine style, provide at least one backup option. "
+                                  "6️⃣ Bonus Tip (if space allows): Add a quick serving or food enhancement tip (e.g., ideal temperature, glassware choice)."},
+
+    {"role": "system", "content": "Format all responses in the following structure for clarity and engagement:\n" # Enter database / special tuned pairings
+                                  "📌 **Wine Pairing Recommendation**: [Wine Type] – [Brand/Suggested Example]\n"
+                                  "💡 **Why This Works**: [Concise, engaging explanation]\n"
+                                  "🔄 **Alternative Choice**: [Different wine type or budget-friendly option]\n"
+                                  "✨ **Bonus Tip**: [Serving temperature, aeration tip, or pairing enhancement]"}
+]
+
+# API Endpoint
+@app.route('/recommend-wine', methods=['POST'])
+def recommend_wine():
+    try:
+        # Get user input from request
+        data = request.get_json()
+        user_input = data.get("query", "")
+
+        if not user_input:
+            return jsonify({"error": "Please provide a valid query."}), 400
+
+        # Append user input to messages
+        messages.append({"role": "user", "content": user_input})
+
+        # OpenAI API call
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Ensure you have access to this model
+            messages=messages,
+            temperature=0.7
+        )
+
+        # Extract response
+        recommendation = response["choices"][0]["message"]["content"]
+
+        return jsonify({"recommendation": recommendation})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run Flask app
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True) # Will need to update
