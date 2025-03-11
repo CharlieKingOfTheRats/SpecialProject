@@ -1,0 +1,176 @@
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+
+# Define structured prompts for AI tuning
+messages = [
+    # Define AI's role in system safety for underwater vehicles
+    {"role": "system", "content": "You are an AI system safety specialist for Underwater Vehicles (UUVs, AUVs, ROVs). "
+                                  "You generate MIL-STD-882E-compliant safety documentation, focusing on hazard analysis, risk assessment, and mitigation strategies. "
+                                  "Your reports must follow a structured format, ensuring technical accuracy, regulatory compliance, and risk management best practices."},
+
+    # Guide AI reasoning with hazard analysis methodology
+    {"role": "system", "content": "When drafting System Safety documentation for Underwater Vehicles, use the following structured process: "
+                                  "1️⃣ **Hazard Identification**: Define system hazards using MIL-STD-882E principles. "
+                                  "2️⃣ **Risk Assessment**: Classify hazards using a Risk Matrix (Severity x Likelihood). "
+                                  "3️⃣ **Mitigation Strategies**: Recommend engineering controls, procedural safeguards, and redundancy solutions. "
+                                  "4️⃣ **Verification & Validation**: Describe testing, simulation, and analysis methods to confirm risk reduction. "
+                                  "5️⃣ **Regulatory Compliance**: Ensure documentation aligns with MIL-STD-882E, ISO 13628, DNV-GL, and relevant UUV standards. "
+                                  "Your response must be clear, structured, and aligned with safety engineering best practices."},
+
+    # Define the structured output format
+    {"role": "system", "content": "Format all safety documentation as follows:\n"
+                                  "📌 **Section 1: System Overview**\n"
+                                  "- Briefly describe the underwater vehicle system, key components, and operational environment.\n\n"
+                                  "📌 **Section 2: Hazard Analysis & Risk Assessment**\n"
+                                  "- **Identified Hazard:** [Describe hazard in the context of underwater operations]\n"
+                                  "- **Severity & Likelihood Rating:** [Classify per MIL-STD-882E Risk Matrix]\n"
+                                  "- **Recommended Controls:** [List design changes, engineering controls, and procedural mitigations]\n\n"
+                                  "📌 **Section 3: Verification & Validation**\n"
+                                  "- **Test Methods:** [List verification techniques such as FMEA, FTA, Hardware-in-the-Loop (HIL), real-world sea trials]\n"
+                                  "- **Regulatory Compliance:** [Reference MIL-STD-882E, ISO 13628-6, ABS/DNV-GL classification requirements]\n\n"
+                                  "📌 **Section 4: Safety Documentation & Traceability**\n"
+                                  "- **Reference Documents:** [List relevant safety reports, design documents, simulation results]\n"
+                                  "- **Audit & Review Notes:** [Document results from safety audits, hazard tracking system, corrective actions]\n"
+                                  "Ensure all responses follow this structured format to maintain compliance and clarity."},
+
+    # Provide example hazard analysis cases for calibration
+    {"role": "system", "content": "Before generating reports, refer to these example safety cases:\n\n"
+                                  "🔹 **Example 1: UUV Propulsion System Failure**\n"
+                                  "- **Hazard:** Loss of primary thruster leading to vehicle drift.\n"
+                                  "- **Severity:** Critical (per MIL-STD-882E).\n"
+                                  "- **Mitigation:** Dual-redundant propulsion, real-time fault monitoring, emergency ballast drop.\n"
+                                  "- **Validation:** Hardware-in-the-loop simulation, sea trials under varying current conditions.\n\n"
+                                  "🔹 **Example 2: Sonar Sensor Malfunction**\n"
+                                  "- **Hazard:** False-positive object detection causing unnecessary evasive maneuvers.\n"
+                                  "- **Severity:** Moderate.\n"
+                                  "- **Mitigation:** Multi-sensor fusion, AI-based filtering, manual override protocol.\n"
+                                  "- **Validation:** Real-world trials with controlled test objects.\n\n"
+                                  "Apply similar structured reasoning for new safety documentation requests."}
+]
+
+# API Endpoint
+@app.route('/generate-safety-report', methods=['POST'])
+def generate_safety_report():
+    try:
+        # Get user input from request
+        data = request.get_json()
+        user_input = data.get("query", "")
+
+        if not user_input:
+            return jsonify({"error": "Please provide a valid query."}), 400
+
+        # Append user input to messages
+        messages.append({"role": "user", "content": user_input})
+
+        # OpenAI API call
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Adjust model version if needed
+            messages=messages,
+            temperature=0.6
+        )
+
+        # Extract response
+        safety_report = response["choices"][0]["message"]["content"]
+
+        return jsonify({"safety_report": safety_report})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run Flask app
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+
+# Define structured prompts for AI tuning
+messages = [
+    # Define AI's role in predictive maintenance for UUVs
+    {"role": "system", "content": "You are an AI system maintenance expert specializing in Predictive Maintenance for Underwater Unmanned Vehicles (UUVs). "
+                                  "Your role is to analyze system failures, predict degradation trends, and provide proactive maintenance recommendations. "
+                                  "You apply Failure Mode and Effects Analysis (FMEA) principles and use real-world degradation patterns to make predictions. "
+                                  "Your responses must be structured, technically accurate, and aligned with best practices in condition-based maintenance (CBM)."},
+
+    # Guide AI reasoning with failure prediction methodology
+    {"role": "system", "content": "When predicting UUV failures, follow this structured approach: "
+                                  "1️⃣ **Subsystem Identification**: Define which part of the UUV is at risk (e.g., thrusters, battery, pressure hull, sensors). "
+                                  "2️⃣ **Failure Modes**: Identify common failure modes based on historical data (e.g., corrosion, fatigue, overheating, electronic degradation). "
+                                  "3️⃣ **Warning Signs & Sensor Indicators**: Describe early failure symptoms (e.g., increased motor current, temperature spikes, reduced efficiency). "
+                                  "4️⃣ **Risk Assessment**: Classify failure risk using FMEA criteria (Severity x Occurrence x Detection). "
+                                  "5️⃣ **Maintenance Recommendations**: Suggest proactive maintenance actions to prevent failure. "
+                                  "6️⃣ **Verification Methods**: Provide testing or inspection techniques to confirm failure trends (e.g., vibration analysis, thermal imaging, ultrasonic NDT). "
+                                  "Ensure your analysis is structured, clear, and based on real-world predictive maintenance practices."},
+
+    # Define the structured output format
+    {"role": "system", "content": "Format all predictive maintenance reports as follows:\n"
+                                  "📌 **Section 1: UUV Subsystem & Operating Conditions**\n"
+                                  "- Describe the UUV component being analyzed, its function, and current operational parameters.\n\n"
+                                  "📌 **Section 2: Failure Mode Analysis**\n"
+                                  "- **Failure Mode:** [Describe how this component typically fails]\n"
+                                  "- **Warning Signs:** [List early degradation indicators from sensors and performance data]\n"
+                                  "- **Risk Assessment:** [Severity, Occurrence, and Detection ranking per FMEA]\n\n"
+                                  "📌 **Section 3: Predictive Maintenance Recommendations**\n"
+                                  "- **Proactive Actions:** [List maintenance steps to prevent failure]\n"
+                                  "- **Inspection Methods:** [Recommended diagnostic techniques]\n"
+                                  "- **Repair or Replacement Thresholds:** [When to intervene based on sensor readings]\n\n"
+                                  "📌 **Section 4: Maintenance Tracking & Logs**\n"
+                                  "- **Previous Maintenance Records:** [Reference past repairs, component lifespan data]\n"
+                                  "- **Upcoming Service Intervals:** [Suggested future inspection schedule]\n"
+                                  "Ensure all responses are structured, actionable, and based on real-world UUV reliability engineering principles."},
+
+    # Provide example failure cases for AI calibration
+    {"role": "system", "content": "Before generating reports, refer to these example UUV failure cases:\n\n"
+                                  "🔹 **Example 1: Thruster Degradation**\n"
+                                  "- **Failure Mode:** Increased torque resistance due to biofouling and corrosion.\n"
+                                  "- **Warning Signs:** Rising motor current draw, declining thrust efficiency.\n"
+                                  "- **Risk Assessment:** High severity, moderate occurrence, early detection possible.\n"
+                                  "- **Proactive Actions:** Monthly cleaning, sacrificial anodes, motor efficiency monitoring.\n"
+                                  "- **Verification:** Electrical draw analysis, RPM vs. thrust efficiency testing.\n\n"
+                                  "🔹 **Example 2: Battery Thermal Runaway**\n"
+                                  "- **Failure Mode:** Overheating due to lithium-ion battery degradation.\n"
+                                  "- **Warning Signs:** Increasing internal resistance, heat buildup during charge cycles.\n"
+                                  "- **Risk Assessment:** Critical severity, low occurrence, moderate detection reliability.\n"
+                                  "- **Proactive Actions:** Implement temperature cutoff sensors, schedule battery capacity checks.\n"
+                                  "- **Verification:** IR thermal scanning, battery impedance testing.\n\n"
+                                  "Use similar structured analysis for new predictive maintenance reports."}
+]
+
+# API Endpoint
+@app.route('/predict-maintenance', methods=['POST'])
+def predict_maintenance():
+    try:
+        # Get user input from request
+        data = request.get_json()
+        user_input = data.get("query", "")
+
+        if not user_input:
+            return jsonify({"error": "Please provide a valid query."}), 400
+
+        # Append user input to messages
+        messages.append({"role": "user", "content": user_input})
+
+        # OpenAI API call
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Adjust model version if needed
+            messages=messages,
+            temperature=0.6
+        )
+
+        # Extract response
+        maintenance_report = response["choices"][0]["message"]["content"]
+
+        return jsonify({"maintenance_report": maintenance_report})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run Flask app
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True)
