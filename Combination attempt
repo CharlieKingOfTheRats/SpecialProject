@@ -1,0 +1,88 @@
+from flask import Flask, request, jsonify
+from config import app
+from models import Food, Style
+import openai
+import random
+
+# Helper Functions
+
+def select_wine(chosen_food):
+    conditions = [Style.common == 1]
+    pairing_notes = {
+        "sweet": "When eating sweet foods, your wine should always be as sweet or sweeter than your food.",
+        "spicy": "Look for a lower alcohol wine (<=12%) when eating spicy food. Alcohol accentuates spiciness.",
+        "medium_umami": "Lower tannins and fuller body wines match medium umami dishes.",
+        "light_umami": "Lean but umami dishes pair best with fuller-bodied whites or lighter reds.",
+        "heavy_umami": "Salt balances umami, opening robust, tannic reds as options.",
+        "fatty_umami": "Bold, tannic reds pair best with fatty, flavorful foods like steak.",
+        "default": "Crisp, acidic wines work well with lighter or fried dishes."
+    }
+
+    if chosen_food.sweetness >= 3 and chosen_food.umami <= 2:
+        conditions.append(Style.sweetness_value == chosen_food.sweetness)
+        note = pairing_notes["sweet"]
+    elif chosen_food.spiciness >= 3:
+        conditions += [Style.alcohol_value <= 3, Style.tannins_value <= 2, Style.body_value <= 2, Style.sweetness_value <= 2]
+        pairing_note = pairing_notes["spicy"]
+    elif chosen_food.umami >= 2 and chosen_food.saltiness <= 3 and chosen_food.fattiness >= 3:
+        conditions += [Style.tannins_value <= 2, Style.body_value >= 3, Style.sweetness_value <= 2]
+        pairing_note = pairing_notes["medium_umami"]
+    elif chosen_food.umami >= 3 and chosen_food.fattiness <= 2:
+        conditions += [Style.tannins_value <= 2, Style.body_value <= 2, Style.sweetness_value <= 2]
+        pairing_note = pairing_notes["light_umami"]
+    elif chosen_food.umami >= 3 and chosen_food.saltiness >= 4:
+        conditions += [Style.tannins_value >= 3, Style.body_value >= 3, Style.acidity_value >= 4, Style.sweetness_value <= 2]
+        pairing_note = pairing_notes["heavy_umami"]
+    elif chosen_food.fattiness >= 4 and chosen_food.umami >= 4:
+        conditions += [Style.tannins_value >= chosen_food.fattiness, Style.body_value >= chosen_food.fattiness, Style.sweetness_value <= 2]
+        pairing_note = pairing_notes["fatty_umami"]
+    else:
+        conditions += [Style.acidity_value >= chosen_food.acidity, Style.body_value <= 2]
+        pairing_note = pairing_notes["default"]
+
+    wine_results = Style.query.filter(*conditions).order_by(Style.name).all()
+    return wine_results, pairing_note
+
+@app.route('/recommend-wine', methods=['POST'])
+def recommend_wine():
+    data = request.get_json()
+    food_name = data.get('food_name')
+    mood = data.get('mood', 'neutral')
+
+    if not food_name:
+        return jsonify({'error': 'Food name is required.'}), 400
+
+    chosen_food = Food.query.filter_by(name=food_name).first()
+    if not chosen_food:
+        return jsonify({'error': 'Food not found.'}), 404
+
+    wine_results, pairing_note = select_wine(chosen_food)
+    if not wine_results:
+        return jsonify({'error': 'No suitable wine found.'}), 404
+
+    primary_wine = random.choice(wine_results)
+    backup_wine = random.choice([w for w in wine_results if w != primary_wine]) if len(wine_results) > 1 else None
+
+    prompt = f"""
+    Suggest a wine for:
+    Dish: {food_name} (Sweetness: {chosen_food.sweetness}, Umami: {chosen_food.umami}, Fattiness: {chosen_food.fattiness}, Spiciness: {chosen_food.spiciness})
+    Mood: {mood}
+
+    Recommend wine: {primary_wine.name}
+    Provide a structured response:
+    1. Dish analysis
+    2. Mood alignment
+    3. Primary recommendation
+    4. Backup wine option ({backup_wine.name if backup_wine else 'similar style'})
+    5. Bonus tip
+    """
+
+    messages = [{"role": "system", "content": "You are an AI sommelier."}, {"role": "user", "content": prompt}]
+
+    response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages, temperature=0.7)
+    recommendation = response.choices[0].message.content
+
+    return jsonify({"recommendation": recommendation, "pairing_note": pairing_note})
+
+if __name__ == '__main__':
+    app.run(debug=True)
