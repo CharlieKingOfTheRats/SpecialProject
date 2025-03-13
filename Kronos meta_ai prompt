@@ -1,0 +1,53 @@
+# bash pip install flask openai langchain llama-index
+
+from flask import Flask, request, jsonify
+import openai
+
+app = Flask(__name__)
+
+# Define AI's Role: Meta-AI that builds AI agents
+meta_ai_prompt = """
+You are an AI that creates other AI agents. Based on user requests, you will:
+1. Select the best AI framework (LangChain, LlamaIndex, OpenAI, etc.).
+2. Generate Python code for a chatbot or AI agent.
+3. Explain how to deploy and use the generated AI.
+
+Generate the full implementation of an AI agent based on user needs.
+"""
+
+# Function to generate AI agent code
+def generate_ai_agent(user_request):
+    prompt = f"{meta_ai_prompt}\n\nUser Request: {user_request}"
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": prompt}],
+        temperature=0.7
+    )
+
+    return response["choices"][0]["message"]["content"]
+
+# API Endpoint to Build AI Agents
+@app.route('/build-ai-agent', methods=['POST'])
+def build_ai_agent():
+    try:
+        data = request.get_json()
+        user_request = data.get("query", "")
+
+        if not user_request:
+            return jsonify({"error": "Please provide a request."}), 400
+
+        ai_agent_code = generate_ai_agent(user_request)
+
+        return jsonify({"ai_agent_code": ai_agent_code})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+# bash: python meta_ai.py
+# example: curl -X POST http://127.0.0.1:5000/build-ai-agent \
+#     -H "Content-Type: application/json" \
+#     -d '{"query": "Build an AI chatbot that answers customer support questions using OpenAI."}'
