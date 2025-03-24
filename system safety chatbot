@@ -52,3 +52,53 @@ def predict():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# system_safety_agent.py
+
+from flask import Flask, request, jsonify
+from openai import OpenAI
+import os
+
+app = Flask(__name__)
+
+# Initialize OpenAI client (ensure your OPENAI_API_KEY is set as an environment variable)
+client = OpenAI()
+
+# System Safety Agent Prompt Template
+SYSTEM_SAFETY_PROMPT = """
+You are a System Safety Engineering assistant specializing in underwater 
+unmanned vehicles (UUVs). Your job is to help write documentation in compliance 
+with MIL-STD-882E and other standards. Please format the response as structured text 
+with bullet points or numbered sections where appropriate.
+"""
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    """Handles POST requests with a user prompt and returns OpenAI response"""
+    data = request.json
+    user_prompt = data.get('prompt', '')
+
+    if not user_prompt:
+        return jsonify({'error': 'Prompt is required'}), 400
+
+    try:
+        # Compose the full prompt by adding system safety instructions
+        full_prompt = SYSTEM_SAFETY_PROMPT + "\n\n" + user_prompt
+
+        completion = client.chat.completions.create(
+            model='gpt-3.5-turbo',
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": full_prompt}
+            ]
+        )
+
+        response = completion.choices[0].message.content
+        return jsonify({'response': response})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
