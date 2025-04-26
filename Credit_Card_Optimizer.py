@@ -127,10 +127,17 @@ submit = st.button("Generate Plan")
 
 if submit:
     user_question = f"I want to {goal}. Timeline: {timeline}. Spending: {spending}. Current cards: {cards}. Preferences: {prefs}."
+    
     result = query_credit_advisor_optimized(user_question)
 
     st.subheader("Generated Credit Card Plan")
-    st.json(result["plan_json"])
+    if result and "plan_json" in result:
+        st.json(result["plan_json"])
+    else:
+        st.error("No plan was generated. Please try again.")
 
     st.subheader("Self-Review and Reasoning")
-    st.write(result["review_notes"])
+    if result and "review_notes" in result:
+        st.write(result["review_notes"])
+    else:
+        st.error("No review notes were generated.")
