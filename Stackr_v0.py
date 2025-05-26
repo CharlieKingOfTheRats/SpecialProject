@@ -1,3 +1,5 @@
+# Copyright © 2025 ParthenonAI Solutions. All rights reserved.
+
 import os
 import openai
 import tiktoken
